@@ -1,0 +1,275 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <title>Concours Belote - C. Gasnier</title>
+    <style>
+        :root { --bg-page: #000000; --tapis-vert: #18704A; --accent: #ff4757; --jaune: #ffeb3b; --gris-souris: #bdc3c7; }
+        body { font-family: 'Segoe UI', sans-serif; background: var(--bg-page); margin: 0; padding: 0; color: white; display: flex; flex-direction: column; height: 100vh; overflow: hidden; }
+        
+        header { background: rgba(0,0,0,0.6); padding: 10px; flex-shrink: 0; border-bottom: 3px solid rgba(255,255,255,0.1); position: relative; }
+        .app-title { position: absolute; top: 10px; left: 10px; font-weight: bold; color: white; font-size: 1.2em; }
+
+        .tabs { display: flex; justify-content: center; gap: 5px; flex-wrap: wrap; margin-bottom: 10px; max-height: 80px; overflow-y: auto; padding: 5px; margin-top: 20px; }
+        .tab-btn { padding: 8px 12px; border: none; border-radius: 15px; cursor: pointer; font-weight: bold; background: rgba(255,255,255,0.2); color: white; font-size: 0.75em; min-width: 80px; }
+        .tab-btn.active { background: white; color: var(--tapis-vert); box-shadow: 0 0 10px white; }
+        .tab-btn.tour-btn { background: rgba(255, 235, 59, 0.2); border: 1px solid var(--jaune); }
+
+        .action-bar { text-align: center; margin-bottom: 5px; }
+        .btn-principal { width: 95%; max-width: 500px; padding: 12px; background: #2ecc71; color: black; border: none; border-radius: 10px; font-size: 1.1em; font-weight: bold; cursor: pointer; text-transform: uppercase; box-shadow: 0 4px 0 #27ae60; }
+        
+        main { flex-grow: 1; overflow-y: auto; padding: 10px; background: var(--tapis-vert); margin: 5px; border-radius: 10px; }
+        .grid-matchs { display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 10px; }
+
+        input[type=number] { width: 70px; padding: 8px; border-radius: 5px; border: none; font-size: 1.1em; font-weight: bold; text-align: center; color: black; }
+
+        .match-card { background: rgba(255,255,255,0.15); padding: 10px; border-radius: 8px; border-left: 5px solid var(--jaune); }
+        .match-row { display: flex; justify-content: space-between; align-items: center; margin: 5px 0; }
+        .team-name { font-weight: bold; color: black; font-size: 0.95em; }
+        
+        .table-header { color: var(--jaune); font-weight: bold; font-size: 1.4em; margin-bottom: 5px; border-bottom: 1px solid rgba(255,255,255,0.1); }
+
+        /* Correction taille des cases équipes */
+        .equipe-ligne { display: flex; align-items: center; gap: 10px; padding: 4px; border-bottom: 1px solid rgba(255,255,255,0.05); justify-content: center; }
+        .equipe-ligne input[type="text"] { width: 180px; padding: 8px; border-radius: 4px; border: none; color: black; background: var(--gris-souris); font-weight: bold; }
+        .labels-equipes { display: flex; justify-content: center; gap: 140px; margin-bottom: 10px; font-weight: bold; color: var(--jaune); text-transform: uppercase; font-size: 0.9em; }
+
+        .page { display: none; }
+        .active-page { display: block; }
+
+        table { width: 100%; border-collapse: collapse; }
+        th { padding: 10px; color: var(--jaune); border-bottom: 2px solid rgba(255,255,255,0.2); }
+        td { padding: 10px; border-bottom: 1px solid rgba(255,255,255,0.1); text-align: center; }
+        .name-td { color: black; font-weight: bold; text-align: left; font-size: 1.1em; }
+        
+        /* Harmonisation des scores et rangs au classement */
+        .score-grand { color: var(--jaune); font-weight: bold; font-size: 1.8em; }
+
+        .config-box { background: rgba(0,0,0,0.2); padding: 10px; border-radius: 8px; margin-bottom: 10px; text-align: center; }
+        .reset-btn { position: absolute; top: 10px; right: 10px; background: var(--accent); color: white; border: none; padding: 6px 10px; border-radius: 5px; cursor: pointer; font-size: 0.7em; font-weight: bold; }
+    </style>
+</head>
+<body onload="chargerDonnees()">
+    <header>
+        <div class="app-title">Concours de Belote C. Gasnier</div>
+        <button class="reset-btn" onclick="reinitialiserTout()">Reset</button>
+        <div class="tabs" id="barreOnglets">
+            <button id="btn-config" class="tab-btn active" onclick="nav('config')">ÉQUIPES</button>
+            <button id="btn-classement" class="tab-btn" onclick="nav('classement')">CLASSEMENT</button>
+        </div>
+        <div class="action-bar">
+            <div id="action-config" class="page-action active-page">
+                <button class="btn-principal" onclick="demarrerTournoi()">LANCER LE CONCOURS</button>
+            </div>
+            <div id="action-tours" class="page-action" style="display:none">
+                <button id="btnActionTour" class="btn-principal" onclick="validerEtape()">ENREGISTRER LE TOUR <span id="tourActuelNum">1</span></button>
+            </div>
+            <div id="action-classement" class="page-action" style="display:none">
+                <button class="btn-principal btn-print" onclick="window.print()">IMPRIMER LE CLASSEMENT</button>
+            </div>
+        </div>
+    </header>
+
+    <main id="main-content">
+        <div id="page-config" class="page active-page">
+            <div class="config-box">
+                <label>Nombre de parties : </label>
+                <input type="number" id="inputNbTours" value="4" onchange="sauverDonnees()" style="width:50px; color:black; background: white;">
+                <div style="margin-top:10px;">
+                    <textarea id="importBox" style="width: 80%; height: 30px; margin: 5px 0; color:black; background: var(--gris-souris);" placeholder="Collez les noms ici..."></textarea>
+                    <button onclick="collerNoms()" style="cursor:pointer; color:black; font-weight:bold; padding: 5px 15px;">IMPORTER</button>
+                </div>
+            </div>
+            <div class="labels-equipes">
+                <span>Joueurs 1</span>
+                <span>Joueurs 2</span>
+            </div>
+            <div id="zoneSaisie"></div>
+        </div>
+        <div id="zonePagesTours"></div>
+        <div id="page-classement" class="page">
+            <div id="zoneClassement"></div>
+        </div>
+    </main>
+
+<script>
+    let equipes = [];
+    let tourEnCours = 1;
+    let nbToursMax = 4;
+    let donneesTours = {}; 
+
+    function initApp() {
+        let h = "";
+        for(let i=1; i<=150; i++) {
+            h += `<div class="equipe-ligne">
+                    <span style="color:var(--jaune); width:40px; font-size:0.8em; font-weight:bold;">#${i}</span>
+                    <input type="text" id="j${i}a" placeholder="Nom du joueur..." onchange="sauverDonnees()">
+                    <input type="text" id="j${i}b" placeholder="Nom du joueur..." onchange="sauverDonnees()">
+                  </div>`;
+        }
+        document.getElementById('zoneSaisie').innerHTML = h;
+    }
+
+    function collerNoms() {
+        let liste = document.getElementById('importBox').value.split('\n').filter(n => n.trim() !== "");
+        for(let i=1; i<=150; i++) {
+            document.getElementById(`j${i}a`).value = liste[(i-1)*2] || "";
+            document.getElementById(`j${i}b`).value = liste[(i-1)*2+1] || "";
+        }
+        sauverDonnees();
+    }
+
+    function demarrerTournoi() {
+        equipes = [];
+        donneesTours = {};
+        tourEnCours = 1;
+        nbToursMax = parseInt(document.getElementById('inputNbTours').value) || 1;
+        
+        for(let i=1; i<=150; i++) {
+            let n1 = document.getElementById(`j${i}a`).value.trim();
+            let n2 = document.getElementById(`j${i}b`).value.trim();
+            if (n1 !== "" || n2 !== "") equipes.push({ id: i, nom: (n1||"?") + " & " + (n2||"?") });
+        }
+        if (equipes.length < 2) return alert("Inscrivez des équipes.");
+        if (equipes.length % 2 !== 0) equipes.push({ id: 0, nom: "EXEMPT (Repos)" });
+
+        document.getElementById('zonePagesTours').innerHTML = "";
+        document.querySelectorAll('.tour-btn').forEach(b => b.remove());
+
+        genererNouveauTour(1);
+        nav('tour1');
+    }
+
+    function genererNouveauTour(n) {
+        let melange = [...equipes].sort(() => Math.random() - 0.5);
+        let matchs = [];
+        for(let i=0; i < melange.length / 2; i++) {
+            matchs.push({ table: i+1, eq1: melange[i*2], eq2: melange[i*2+1], s1: "", s2: "" });
+        }
+        donneesTours[n] = matchs;
+        creerPageEtOnglet(n);
+    }
+
+    function creerPageEtOnglet(n) {
+        if(!document.getElementById('btn-tour'+n)) {
+            let btn = document.createElement('button');
+            btn.id = 'btn-tour'+n;
+            btn.className = 'tab-btn tour-btn';
+            btn.innerText = 'TOUR ' + n;
+            btn.onclick = () => nav('tour'+n);
+            document.getElementById('barreOnglets').insertBefore(btn, document.getElementById('btn-classement'));
+        }
+
+        let page = document.createElement('div');
+        page.id = 'page-tour'+n;
+        page.className = 'page grid-matchs';
+        
+        let h = "";
+        donneesTours[n].forEach((m, idx) => {
+            h += `<div class="match-card">
+                <div class="table-header">TABLE ${m.table}</div>
+                <div class="match-row"><span class="team-name">${m.eq1.nom}</span>${m.eq1.id === 0 || m.eq2.id === 0 ? '' : `<input type="number" value="${m.s1}" onchange="updateScore(${n},${idx},1,this.value)" placeholder="...">`}</div>
+                <div class="match-row"><span class="team-name">${m.eq2.nom}</span>${m.eq1.id === 0 || m.eq2.id === 0 ? '' : `<input type="number" value="${m.s2}" onchange="updateScore(${n},${idx},2,this.value)" placeholder="...">`}</div>
+            </div>`;
+        });
+        page.innerHTML = h;
+        document.getElementById('zonePagesTours').appendChild(page);
+    }
+
+    function updateScore(numTour, matchIdx, numEquipe, valeur) {
+        let val = valeur === "" ? "" : parseInt(valeur);
+        if(numEquipe === 1) donneesTours[numTour][matchIdx].s1 = val;
+        else donneesTours[numTour][matchIdx].s2 = val;
+        actualiserClassement();
+        sauverDonnees();
+    }
+
+    function validerEtape() {
+        if(tourEnCours < nbToursMax) {
+            tourEnCours++;
+            genererNouveauTour(tourEnCours);
+            nav('tour' + tourEnCours);
+        } else {
+            alert("Concours terminé !");
+            nav('classement');
+        }
+    }
+
+    function actualiserClassement() {
+        let resultats = {};
+        equipes.forEach(e => { if(e.id !== 0) resultats[e.id] = { nom: e.nom, vic: 0, pts: 0 }; });
+
+        for(let t in donneesTours) {
+            donneesTours[t].forEach(m => {
+                if(m.eq1.id !== 0 && m.eq2.id !== 0 && m.s1 !== "" && m.s2 !== "") {
+                    resultats[m.eq1.id].pts += parseInt(m.s1);
+                    resultats[m.eq2.id].pts += parseInt(m.s2);
+                    if(parseInt(m.s1) > parseInt(m.s2)) resultats[m.eq1.id].vic++;
+                    else if(parseInt(m.s2) > parseInt(m.s1)) resultats[m.eq2.id].vic++;
+                }
+            });
+        }
+
+        let tri = Object.values(resultats).sort((a,b) => b.vic - a.vic || b.pts - a.pts);
+        let h = "<table><tr><th>RANG</th><th style='text-align:left;'>ÉQUIPES</th><th>VICTOIRES</th><th>POINTS</th></tr>";
+        tri.forEach((s, idx) => {
+            h += `<tr><td class="score-grand">${idx+1}</td><td class="name-td">${s.nom}</td><td class="score-grand">${s.vic}</td><td class="score-grand">${s.pts}</td></tr>`;
+        });
+        h += "</table>";
+        document.getElementById('zoneClassement').innerHTML = h;
+    }
+
+    function nav(id) {
+        document.querySelectorAll('.page').forEach(pg => pg.style.display = 'none');
+        document.querySelectorAll('.tab-btn').forEach(bt => bt.classList.remove('active'));
+        document.querySelectorAll('.page-action').forEach(f => f.style.display = 'none');
+
+        const target = document.getElementById('page-' + id);
+        if(target) {
+            target.style.display = (id.startsWith('tour') ? 'grid' : 'block');
+            document.getElementById('btn-' + id).classList.add('active');
+
+            if(id.startsWith('tour')) {
+                document.getElementById('action-tours').style.display = 'block';
+                let n = id.replace('tour', '');
+                document.getElementById('tourActuelNum').innerText = n;
+                tourEnCours = parseInt(n);
+            } else {
+                document.getElementById('action-' + id).style.display = 'block';
+            }
+        }
+    }
+
+    function sauverDonnees() {
+        const state = { equipes, tourEnCours, nbToursMax, donneesTours, inputsNoms: {} };
+        for(let i=1; i<=150; i++) {
+            state.inputsNoms[`j${i}a`] = document.getElementById(`j${i}a`).value;
+            state.inputsNoms[`j${i}b`] = document.getElementById(`j${i}b`).value;
+        }
+        localStorage.setItem('beloteV19', JSON.stringify(state));
+    }
+
+    function chargerDonnees() {
+        initApp();
+        const saved = localStorage.getItem('beloteV19');
+        if(saved) {
+            const data = JSON.parse(saved);
+            equipes = data.equipes || [];
+            tourEnCours = data.tourEnCours || 1;
+            nbToursMax = data.nbToursMax || 4;
+            donneesTours = data.donneesTours || {};
+            document.getElementById('inputNbTours').value = nbToursMax;
+            for(let key in data.inputsNoms) if(document.getElementById(key)) document.getElementById(key).value = data.inputsNoms[key];
+            
+            for(let t in donneesTours) creerPageEtOnglet(t);
+            actualiserClassement();
+            if(equipes.length > 0) nav('tour' + tourEnCours);
+        }
+    }
+
+    function reinitialiserTout() {
+        if(confirm("Effacer tout le tournoi ?")) { localStorage.removeItem('beloteV19'); location.reload(); }
+    }
+</script>
+</body>
+</html>
