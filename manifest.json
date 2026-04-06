@@ -1,21 +1,23 @@
 {
-  "name": "Concours de belote par C. Gasnier",
-  "short_name": "ConcoursBelote",
+  "name": "Concours de Belote C. Gasnier",
+  "short_name": "BeloteGasnier",
   "description": "Gestionnaire de concours de Belote pour 150 équipes",
-  "start_url": "index.html",
+  "start_url": "./index.html",
   "display": "standalone",
   "background_color": "#18704A",
-  "theme_color": "#278BF5",
+  "theme_color": "#000000",
   "icons": [
     {
       "src": "icon-192.png",
       "sizes": "192x192",
-      "type": "image/png"
+      "type": "image/png",
+      "purpose": "any maskable"
     },
     {
       "src": "icon-512.png",
       "sizes": "512x512",
-      "type": "image/png"
+      "type": "image/png",
+      "purpose": "any maskable"
     }
   ]
 }

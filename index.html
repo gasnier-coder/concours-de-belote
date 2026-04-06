@@ -3,6 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <title>Belote Master Pro - C. Gasnier</title>
+    <link rel="manifest" href="manifest.json">
     <style>
         :root { --bg-page: #000000; --tapis-vert: #18704A; --accent: #ff4757; --jaune: #ffeb3b; --gris-souris: #bdc3c7; }
         body { font-family: 'Segoe UI', sans-serif; background: var(--bg-page); margin: 0; padding: 0; color: white; display: flex; flex-direction: column; height: 100vh; overflow: hidden; }
@@ -10,13 +11,14 @@
         header { background: rgba(0,0,0,0.6); padding: 10px; flex-shrink: 0; border-bottom: 3px solid rgba(255,255,255,0.1); position: relative; }
         .app-title { position: absolute; top: 10px; left: 10px; font-weight: bold; color: white; font-size: 1.2em; }
 
-        .tabs { display: flex; justify-content: center; gap: 5px; flex-wrap: wrap; margin-bottom: 10px; max-height: 80px; overflow-y: auto; padding: 5px; margin-top: 20px; }
+        .tabs { display: flex; justify-content: center; gap: 5px; flex-wrap: wrap; margin-bottom: 10px; max-height: 80px; overflow-y: auto; padding: 5px; margin-top: 25px; }
         .tab-btn { padding: 8px 12px; border: none; border-radius: 15px; cursor: pointer; font-weight: bold; background: rgba(255,255,255,0.2); color: white; font-size: 0.75em; min-width: 80px; }
         .tab-btn.active { background: white; color: var(--tapis-vert); box-shadow: 0 0 10px white; }
         .tab-btn.tour-btn { background: rgba(255, 235, 59, 0.2); border: 1px solid var(--jaune); }
 
         .action-bar { text-align: center; margin-bottom: 5px; }
         .btn-principal { width: 95%; max-width: 500px; padding: 12px; background: #2ecc71; color: black; border: none; border-radius: 10px; font-size: 1.1em; font-weight: bold; cursor: pointer; text-transform: uppercase; box-shadow: 0 4px 0 #27ae60; }
+        .btn-print { background: #3498db; color: white; margin-top: 10px; box-shadow: 0 4px 0 #2980b9; }
         
         main { flex-grow: 1; overflow-y: auto; padding: 10px; background: var(--tapis-vert); margin: 5px; border-radius: 10px; }
         .grid-matchs { display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 10px; }
@@ -29,7 +31,6 @@
         
         .table-header { color: var(--jaune); font-weight: bold; font-size: 1.4em; margin-bottom: 5px; border-bottom: 1px solid rgba(255,255,255,0.1); }
 
-        /* Correction taille des cases équipes */
         .equipe-ligne { display: flex; align-items: center; gap: 10px; padding: 4px; border-bottom: 1px solid rgba(255,255,255,0.05); justify-content: center; }
         .equipe-ligne input[type="text"] { width: 180px; padding: 8px; border-radius: 4px; border: none; color: black; background: var(--gris-souris); font-weight: bold; }
         .labels-equipes { display: flex; justify-content: center; gap: 140px; margin-bottom: 10px; font-weight: bold; color: var(--jaune); text-transform: uppercase; font-size: 0.9em; }
@@ -41,15 +42,25 @@
         th { padding: 10px; color: var(--jaune); border-bottom: 2px solid rgba(255,255,255,0.2); }
         td { padding: 10px; border-bottom: 1px solid rgba(255,255,255,0.1); text-align: center; }
         .name-td { color: black; font-weight: bold; text-align: left; font-size: 1.1em; }
-        
-        /* Harmonisation des scores et rangs au classement */
         .score-grand { color: var(--jaune); font-weight: bold; font-size: 1.8em; }
 
         .config-box { background: rgba(0,0,0,0.2); padding: 10px; border-radius: 8px; margin-bottom: 10px; text-align: center; }
         .reset-btn { position: absolute; top: 10px; right: 10px; background: var(--accent); color: white; border: none; padding: 6px 10px; border-radius: 5px; cursor: pointer; font-size: 0.7em; font-weight: bold; }
+
+        @media print {
+            body { background: white !important; color: black !important; }
+            header, .tabs, .action-bar, .reset-btn, .btn-print { display: none !important; }
+            main { background: white !important; margin: 0 !important; padding: 0 !important; overflow: visible !important; }
+            table { color: black !important; border: 1px solid #ccc; }
+            th { color: black !important; border-bottom: 2px solid black !important; }
+            td { border-bottom: 1px solid #eee !important; }
+            .score-grand, .name-td { color: black !important; }
+            .app-title { position: static; color: black !important; display: block !important; text-align: center; font-size: 2em; margin-bottom: 20px; }
+        }
     </style>
 </head>
 <body onload="chargerDonnees()">
+
     <header>
         <div class="app-title">Concours de Belote C. Gasnier</div>
         <button class="reset-btn" onclick="reinitialiserTout()">Reset</button>
@@ -120,6 +131,7 @@
     }
 
     function demarrerTournoi() {
+        if(!confirm("Lancer le concours ? Cela générera le Tour 1.")) return;
         equipes = [];
         donneesTours = {};
         tourEnCours = 1;
@@ -190,7 +202,7 @@
             genererNouveauTour(tourEnCours);
             nav('tour' + tourEnCours);
         } else {
-            alert("Concours terminé !");
+            alert("Concours terminé ! Consultez le classement.");
             nav('classement');
         }
     }
@@ -211,7 +223,7 @@
         }
 
         let tri = Object.values(resultats).sort((a,b) => b.vic - a.vic || b.pts - a.pts);
-        let h = "<table><tr><th>RANG</th><th style='text-align:left;'>ÉQUIPES</th><th>VICTOIRES</th><th>POINTS</th></tr>";
+        let h = "<table><tr><th>Rang</th><th style='text-align:left;'>Équipe</th><th>Victoires</th><th>Points</th></tr>";
         tri.forEach((s, idx) => {
             h += `<tr><td class="score-grand">${idx+1}</td><td class="name-td">${s.nom}</td><td class="score-grand">${s.vic}</td><td class="score-grand">${s.pts}</td></tr>`;
         });
@@ -269,6 +281,12 @@
 
     function reinitialiserTout() {
         if(confirm("Effacer tout le tournoi ?")) { localStorage.removeItem('beloteV19'); location.reload(); }
+    }
+
+    // --- ACTIVATION DU SERVICE WORKER ---
+    if ('serviceWorker' in navigator) {
+        navigator.serviceWorker.register('sw.js')
+          .then(() => console.log("Prêt pour l'installation"));
     }
 </script>
 </body>

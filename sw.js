@@ -1,18 +1,20 @@
-const CACHE_NAME = 'belote';
+const CACHE_NAME = 'belote-v20'; // On change de version pour forcer la mise à jour
 const ASSETS = [
+  './',
   'index.html',
   'manifest.json',
-  // Ajoute ici tes icônes si tu en as, ex: 'icon-192.png'
+  'icon-192.png',
+  'icon-512.png'
 ];
 
-// Installation : on met les fichiers en cache
 self.addEventListener('install', (e) => {
   e.waitUntil(
-    caches.open(CACHE_NAME).then((cache) => cache.addAll(ASSETS))
+    caches.open(CACHE_NAME).then((cache) => {
+      return cache.addAll(ASSETS).catch(err => console.warn("Fichier manquant au cache", err));
+    })
   );
 });
 
-// Interception : on sert les fichiers depuis le cache si on est hors-ligne
 self.addEventListener('fetch', (e) => {
   e.respondWith(
     caches.match(e.request).then((response) => {
