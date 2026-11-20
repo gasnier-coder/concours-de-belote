@@ -95,7 +95,7 @@
                     <input type="file" id="fichierExcel" accept=".xlsx,.xls,.csv" onchange="importerExcel(event)" style="color:white; margin-bottom:8px;">
                     <br>
                     <textarea id="importBox" style="width: 80%; height: 30px; margin: 5px 0; color:black; background: var(--gris-souris);" placeholder="Ou collez les noms ici (1 nom par ligne)..."></textarea>
-                    <button onclick="collerNoms()" style="cursor:pointer; color:black; font-weight:bold; padding: 5px 15px;">IMPORTER</button>
+                    <button id="btnImportTexte" onclick="collerNoms()" style="cursor:pointer; color:black; font-weight:bold; padding: 5px 15px;">IMPORTER</button>
                 </div>
             </div>
             <div class="labels-equipes">
@@ -138,19 +138,29 @@
             document.getElementById(`j${i}b`).value = propres[(i-1)*2+1] || "";
         }
         sauverDonnees();
+        return propres.length;
     }
 
     function collerNoms() {
-        let liste = document.getElementById('importBox').value.split('\n');
-        remplirEquipesDepuisListe(liste);
+        const box = document.getElementById('importBox');
+        if (!box) {
+            alert("Champ de texte introuvable.");
+            return;
+        }
+        const liste = box.value.split('\n');
+        const total = remplirEquipesDepuisListe(liste);
+        alert(`${total} nom(s) traité(s).`);
     }
 
     function importerExcel(event) {
-        const file = event.target.files[0];
-        if (!file) return;
+        const file = event.target.files && event.target.files[0];
+        if (!file) {
+            alert("Aucun fichier sélectionné.");
+            return;
+        }
 
         if (typeof XLSX === "undefined") {
-            alert("La librairie Excel n'est pas chargée. Vérifie la connexion ou le cache du Service Worker.");
+            alert("La librairie Excel n'est pas chargée. Vérifie ta connexion internet ou le cache du Service Worker.");
             return;
         }
 
@@ -171,11 +181,11 @@
                     });
                 });
 
-                remplirEquipesDepuisListe(noms);
-                alert(`${noms.length} nom(s) importé(s) depuis "${file.name}".`);
+                const total = remplirEquipesDepuisListe(noms);
+                alert(`${total} nom(s) importé(s) depuis "${file.name}".`);
             } catch (err) {
                 console.error("Erreur import Excel :", err);
-                alert("Impossible de lire ce fichier Excel.");
+                alert("Impossible de lire ce fichier Excel : " + err.message);
             } finally {
                 event.target.value = "";
             }
@@ -333,7 +343,7 @@
     }
 
     function reinitialiserTout() {
-        if(confirm("Effacer tout le tournoi ?")) { localStorage.removeItem('beloteV19'); location.reload(); }
+        if(confirm("Effacer tout le tournoi ?")) { localStorage.removeItem('beloteV19'); window.location.reload(); }
     }
 
     // --- ACTIVATION DU SERVICE WORKER ---
