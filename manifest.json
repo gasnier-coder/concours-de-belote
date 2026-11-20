@@ -1,6 +1,6 @@
 {
   "name": "Concours de Belote C. Gasnier",
-  "short_name": "BeloteGasnier",
+  "short_name": "BeloteGasnier V2",
   "description": "Gestionnaire de concours de Belote pour 150 équipes",
   "start_url": "./",
   "scope": "./",
