@@ -1,10 +1,11 @@
-<meta charset="UTF-8">
-<title>Concours - C. Gasnier</title>
-
-<link rel="manifest" href="manifest.json">
-<style>
-
-	
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <title>Concours - C. Gasnier</title>
+    <link rel="manifest" href="manifest.json">
+    <script src="https://cdn.sheetjs.com/xlsx-0.20.3/package/dist/xlsx.full.min.js"></script>
+    <style>
         :root { --bg-page: #000000; --tapis-vert: #18704A; --accent: #ff4757; --jaune: #ffeb3b; --gris-souris: #bdc3c7; }
         body { font-family: 'Segoe UI', sans-serif; background: var(--bg-page); margin: 0; padding: 0; color: white; display: flex; flex-direction: column; height: 100vh; overflow: auto; }
         
@@ -63,15 +64,13 @@
 <body onload="chargerDonnees()">
 
     <header>
-
         <div class="app-title"></div>
         <button class="reset-btn" onclick="reinitialiserTout()">Reset</button>
-		
+        
         <div class="tabs" id="barreOnglets">
             <button id="btn-config" class="tab-btn active" onclick="nav('config')">ÉQUIPES</button>
             <button id="btn-classement" class="tab-btn" onclick="nav('classement')">CLASSEMENT</button>
-	<img src="GASNIERTECHROND.gif" width="130" style="position: absolute; top: 0px; left: 30px;" alt="Logo">
-
+            <img src="GASNIERTECHROND.gif" width="130" style="position: absolute; top: 0px; left: 30px;" alt="Logo">
         </div>
         <div class="action-bar">
             <div id="action-config" class="page-action active-page">
@@ -84,8 +83,6 @@
                 <button class="btn-principal btn-print" onclick="window.print()">IMPRIMER LE CLASSEMENT</button>
             </div>
         </div>
-		
-		
     </header>
 
     <main id="main-content">
@@ -94,7 +91,10 @@
                 <label>Nombre de parties : </label>
                 <input type="number" id="inputNbTours" value="4" onchange="sauverDonnees()" style="width:50px; color:black; background: white;">
                 <div style="margin-top:10px;">
-                    <textarea id="importBox" style="width: 80%; height: 30px; margin: 5px 0; color:black; background: var(--gris-souris);" placeholder="Collez les noms ici..."></textarea>
+                    <label for="fichierExcel" style="display:inline-block; margin-bottom:6px; font-weight:bold; color:var(--jaune);">Importer un fichier Excel (.xlsx, .xls, .csv) : </label>
+                    <input type="file" id="fichierExcel" accept=".xlsx,.xls,.csv" onchange="importerExcel(event)" style="color:white; margin-bottom:8px;">
+                    <br>
+                    <textarea id="importBox" style="width: 80%; height: 30px; margin: 5px 0; color:black; background: var(--gris-souris);" placeholder="Ou collez les noms ici (1 nom par ligne)..."></textarea>
                     <button onclick="collerNoms()" style="cursor:pointer; color:black; font-weight:bold; padding: 5px 15px;">IMPORTER</button>
                 </div>
             </div>
@@ -128,13 +128,59 @@
         document.getElementById('zoneSaisie').innerHTML = h;
     }
 
-    function collerNoms() {
-        let liste = document.getElementById('importBox').value.split('\n').filter(n => n.trim() !== "");
+    function remplirEquipesDepuisListe(listeNoms) {
+        const propres = listeNoms
+            .map(n => String(n ?? "").trim())
+            .filter(n => n !== "");
+
         for(let i=1; i<=150; i++) {
-            document.getElementById(`j${i}a`).value = liste[(i-1)*2] || "";
-            document.getElementById(`j${i}b`).value = liste[(i-1)*2+1] || "";
+            document.getElementById(`j${i}a`).value = propres[(i-1)*2] || "";
+            document.getElementById(`j${i}b`).value = propres[(i-1)*2+1] || "";
         }
         sauverDonnees();
+    }
+
+    function collerNoms() {
+        let liste = document.getElementById('importBox').value.split('\n');
+        remplirEquipesDepuisListe(liste);
+    }
+
+    function importerExcel(event) {
+        const file = event.target.files[0];
+        if (!file) return;
+
+        if (typeof XLSX === "undefined") {
+            alert("La librairie Excel n'est pas chargée. Vérifie la connexion ou le cache du Service Worker.");
+            return;
+        }
+
+        const reader = new FileReader();
+        reader.onload = function(e) {
+            try {
+                const data = new Uint8Array(e.target.result);
+                const workbook = XLSX.read(data, { type: 'array' });
+                const firstSheet = workbook.Sheets[workbook.SheetNames[0]];
+                const rows = XLSX.utils.sheet_to_json(firstSheet, { header: 1 });
+
+                const noms = [];
+                rows.forEach(row => {
+                    if (!Array.isArray(row)) return;
+                    row.forEach(cell => {
+                        const val = String(cell ?? "").trim();
+                        if (val !== "") noms.push(val);
+                    });
+                });
+
+                remplirEquipesDepuisListe(noms);
+                alert(`${noms.length} nom(s) importé(s) depuis "${file.name}".`);
+            } catch (err) {
+                console.error("Erreur import Excel :", err);
+                alert("Impossible de lire ce fichier Excel.");
+            } finally {
+                event.target.value = "";
+            }
+        };
+        reader.readAsArrayBuffer(file);
     }
 
     function demarrerTournoi() {
